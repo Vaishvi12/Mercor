@@ -1,0 +1,48 @@
+import RPi.GPIO as GPIO
+
+import time
+
+from time import sleep
+
+GPIO.setmode(GPIO.BCM)
+
+Soil = 26
+
+relay = 21
+
+GPIO.setup(Soil, GPIO.IN)
+
+GPIO.setwarnings(False) 
+
+GPIO.setup(relay, GPIO.OUT)
+
+GPIO.output(relay, GPIO.LOW)
+
+  
+
+while True:
+
+  got_something = GPIO.input(Soil)
+
+  print(got_something)
+
+ 
+
+ if got_something:
+
+    print("Moisture Low")
+
+    GPIO.output(relay, GPIO.LOW)
+
+    time.sleep(1)
+
+    GPIO.output(relay, GPIO.HIGH)
+
+    time.sleep(1)
+
+  else:
+
+    print("Moisture High")
+
+    time.sleep(0.2)
+
