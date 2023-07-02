@@ -1,0 +1,266 @@
+import RPi.GPIO as GPIO
+
+import time
+
+import cv2
+
+import urlopen
+
+import urllib
+
+# initialize GPIO
+
+GPIO.setwarnings(False)
+
+GPIO.setmode(GPIO.BCM)
+
+print("Welcome to smart Agriculture")
+
+
+
+buzzer = 13
+
+GPIO.setup(buzzer, GPIO.OUT)
+
+GPIO.output(buzzer, GPIO.LOW)
+
+
+
+GPIO.setup(4, GPIO.IN)
+
+
+
+#URL='https://api.thingspeak.com/update?api_key=34G1M3QJ0UUTJU34'
+
+    
+
+def animal_detection():
+
+    import cv2
+
+    import requests
+
+    import random
+
+    import json
+
+    thres=0.5 #threshold to detect object107
+
+
+
+    #importing names of the objects
+
+    classNames=[]
+
+
+
+    #importing the files
+
+    classFile='coco.names'
+
+    with open(classFile,'rt') as f: #read file classFile as f
+
+    classNames =f.read().rstrip('\n').split('\n') 
+
+    #striping the images in the new line and stores inthe classNames
+
+
+
+    #importing the path of the configuration and weight
+
+    configPath='ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt'
+
+    weightsPath='frozen_inference_graph.pb'
+
+
+
+
+
+
+
+    net = cv2.dnn_DetectionModel(weightsPath,configPath)
+
+    net.setInputSize(320, 320)
+
+    net.setInputScale(1.0/127.5)
+
+    net.setInputMean((127.5, 127.5, 127.5))
+
+    net.setInputSwapRB(True)
+
+
+
+    msg="Animal detected in farm...Please alert!!!!"
+
+
+
+    def sms_send():
+
+        url="https://www.fast2sms.com/dev/bulk"
+
+        params={
+
+
+
+"authorization":"9uyOLtK4m1JHjarIN70DkMEc68dxSAgB3GFQwiqXWPzUhYsefZ6XLOM2rvu7EawyPqAfBUkT9ls48FYS",
+
+            "sender_id":"SMSINI",
+
+            "message":msg,
+
+            "language":"english",
+
+            "route":"p",
+
+            "numbers":"9307990515"
+
+        }
+
+
+
+        rs=requests.get(url,params=params)
+
+
+
+            
+
+    def getObjects(img,draw=True,objects=[]):
+
+        classIds, confs, bbox = net.detect(img,confThreshold=thres,nmsThreshold=0.2)
+
+        #print(classIds,bbox)
+
+        if len(objects)==0: objects=classNames
+
+        objectInfo = []
+
+        if len(classIds) !=0:
+
+            for classId, confidence, box in zip(classIds.flatten(),confs.flatten(), bbox):
+
+                className = classNames[classId - 1]
+
+                if className in objects:
+
+                    objectInfo.append([box, className])
+
+                    if (draw):
+
+                        cv2.rectangle(img,box,color=(0,255,0),thickness=2)
+
+                        cv2.putText(img,className.upper(),(box[0]+10,box[1]+30),cv2.FONT_HERSHEY_COMPLEX,1,(0,255,0),2)
+
+                        cv2.putText(img,str(round(confidence*100,2)), (box[0] + 300, box[1] + 30), cv2.FONT_HERSHEY_COMPLEX, 1,(0, 255, 0), 2)
+
+                        if str(className) == 'cat':
+
+                            sms_send()
+
+                            GPIO.output(buzzer, GPIO.HIGH)
+
+                            time.sleep(1)
+
+                            GPIO.output(buzzer, GPIO.LOW)
+
+
+
+                        if str(className) == 'cow':
+
+                            sms_send()
+
+                            GPIO.output(buzzer, GPIO.HIGH)
+
+                            time.sleep(1)
+
+                            GPIO.output(buzzer, GPIO.LOW)
+
+
+
+                        if str(className) == 'sheep':
+
+                            sms_send()
+
+                            GPIO.output(buzzer, GPIO.HIGH)
+
+                            time.sleep(1)
+
+                            GPIO.output(buzzer, GPIO.LOW)
+
+
+
+                        if str(className) == 'person':
+
+                            sms_send()
+
+                            GPIO.output(buzzer, GPIO.HIGH)
+
+                            time.sleep(1)
+
+                            GPIO.output(buzzer, GPIO.LOW)
+
+                     
+
+        return img,objectInfo
+
+
+
+    cap = cv2.VideoCapture(0)
+
+
+
+    cap.set(3, 640)
+
+    cap.set(4, 488)
+
+    success, img = cap.read()
+
+    result,objectInfo = getObjects(img)
+
+
+
+    print("Detected Intruder is : "+str(objectInfo))
+
+    cv2.imshow("output", img)
+
+    cv2.waitKey(1)
+
+
+
+def PIR():
+
+   
+
+    i=GPIO.input(4)
+
+    '''finalURL3 = URL +"&field3=%s"%(i)
+
+    request3 = urllib.request.Request(finalURL3)
+
+    response3= urllib.request.urlopen(request3)
+
+    response3.close()'''
+
+
+
+    if i==0:                 #When output from motion sensor is LOW
+
+        print ("No intruder")
+
+        time.sleep(0.5)
+
+
+
+    elif i==1:               #When output from motion sensor is HIGH
+
+        print ("Intruder detected")
+
+        animal_detection()
+
+
+
+while True:
+
+    PIR()
+
+    time.sleep(0.1)
+
